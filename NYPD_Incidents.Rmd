@@ -1,0 +1,142 @@
+---
+title: "NYPD Shooting Incidents Analysis"
+author: "Michael Portner"
+date: "2024-05-09"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+# Setting up the environment and loading necessary libraries
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(tidyverse)
+```
+
+## NYPD Shooting Incidents Analysis
+
+### Data Retrieval and Preprocessing
+
+```{r get_gov_data, echo=FALSE}
+# Retrieving data from the NYC Open Data portal
+url_in <- "https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD"
+
+# Reading the data into R
+nypd_data <- read_csv(url_in)
+```
+
+### Data Transformation
+
+#### Removing Unnecessary Columns
+
+```{r remove_geo, echo=TRUE}
+# Removing geographical coordinates and incident key columns
+nypd_data <- nypd_data %>%
+  select(-c(X_COORD_CD:Lon_Lat)) %>% 
+  select(-c(INCIDENT_KEY))
+```
+
+#### Standardizing Date and Column Names
+
+```{r rename, echo=TRUE}
+# Standardizing date format and renaming columns
+nypd_data <- nypd_data %>%
+  mutate(date = mdy(OCCUR_DATE), 
+         time = OCCUR_TIME,
+         borough = BORO) %>%
+  select(-c(OCCUR_DATE, OCCUR_TIME, BORO))
+```
+
+#### Handling Missing Values
+
+```{r replace_strings, echo=TRUE}
+# Replacing "(null)" and "UNKNOWN" with NA
+nypd_data <- nypd_data %>%
+    mutate(
+        PERP_RACE = na_if(PERP_RACE, "(null)"),
+        PERP_RACE = na_if(PERP_RACE, "UNKNOWN"),
+        PERP_SEX = na_if(PERP_SEX, "(null)"),
+        PERP_AGE_GROUP = na_if(PERP_AGE_GROUP, "(null)"),
+        LOCATION_DESC = na_if(LOCATION_DESC, "(null)"),
+        LOC_OF_OCCUR_DESC = na_if(LOC_OF_OCCUR_DESC, "(null)"),
+        LOC_CLASSFCTN_DESC = na_if(LOC_CLASSFCTN_DESC, "(null)")
+    )
+```
+
+### Data Analysis and Visualization
+
+#### Stacked Bar Chart: Borough vs. Victim Race {.center}
+
+
+```{r plot_borough_victim_race, echo=TRUE}
+# Creating a stacked bar chart showing incidents by borough and victim race
+ggplot(nypd_data, aes(x = substr(borough, 1, 3), fill = VIC_RACE)) +
+  geom_bar(position = "stack") +
+  labs(x = "Borough (Abbreviated)", y = "Incidents", fill = "Victim Race") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set1")  # Adding colors for differentiation
+```
+
+The stacked bar chart illustrates that regardless of borough, Black individuals are disproportionately the victims of shootings.
+
+#### Hourly Frequency of Shootings
+
+```{r histogram_shootings_hour, echo=TRUE}
+# Creating a histogram to display the frequency of shootings during certain hours
+# Converting time to hour
+nypd_data$time <- as.POSIXct(nypd_data$time, format = "%H:%M:%S")
+nypd_data$hour <- format(nypd_data$time, "%H")
+
+# Creating the histogram
+ggplot(nypd_data, aes(x = hour)) +
+  geom_histogram(stat = "count", binwidth = 1) +
+  labs(x = "Hour of the Day", y = "Frequency of Shootings") +
+  theme_minimal()
+```
+
+The histogram reveals a pattern where the frequency of shootings tends to increase from 9 AM to 11 PM and decreases from 11 PM to 7 AM.
+
+### Modelling: Linear Regression Analysis: Black Victims per Borough
+
+```{r black_victims_regression, echo=TRUE}
+# Filtering data for incidents involving Black victims
+black_victims_data <- nypd_data %>%
+  filter(VIC_RACE == "BLACK")
+
+# Calculating total number of shooting incidents per borough
+incident_counts <- nypd_data %>%
+  count(borough) %>%
+  rename(total_incidents = n)
+
+# Calculating total number of shooting incidents involving Black victims per borough
+black_victims_counts <- black_victims_data %>%
+  count(borough) %>%
+  rename(black_victims = n)
+
+# Merging incident counts with counts of incidents involving Black victims by borough
+merged_data <- left_join(incident_counts, black_victims_counts, by = "borough") %>%
+  mutate(black_victims = ifelse(is.na(black_victims), 0, black_victims))
+
+# Performing linear regression
+regression_model <- lm(black_victims ~ total_incidents, data = merged_data)
+
+# Summary of the regression model
+summary(regression_model)
+
+# Plotting the data and regression line
+ggplot(merged_data, aes(x = total_incidents, y = black_victims)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(x = "Total Incidents", y = "Black Victims") +
+  theme_minimal()
+```
+
+The linear regression analysis investigates the relationship between the total number of incidents and the number of incidents involving Black victims per borough. The resulting regression model provides insights into this relationship.
+
+### Additional Question
+
+One could raise the question of how the observed patterns correlate with sleeping patterns or if there are other underlying reasons behind the temporal trends in shooting incidents.
+
+``` 
