@@ -1,6 +1,6 @@
 ---
 title: "NYPD Shooting Incidents Analysis"
-author: "Michael Portner"
+author: "Michael P"
 date: "2024-05-09"
 output:
   html_document:
@@ -17,7 +17,40 @@ library(tidyverse)
 
 ## NYPD Shooting Incidents Analysis
 
+### Introduction
+
+This report aims to analyze shooting incidents reported by the New York City Police Department (NYPD). The primary focus is on understanding the distribution of incidents across boroughs and investigating racial factors of victims of incidents.
+
+
+## Dataset Description
+
+| Column               | Description                                                        |
+|----------------------|--------------------------------------------------------------------|
+| INCIDENT_KEY         | ID for each incident                                               |
+| OCCUR_DATE           | Date of the shooting incident                                      |
+| OCCUR_TIME           | Time of the shooting incident                                      |
+| BORO                 | Borough                                                            |
+| LOC_OF_OCCUR_DESC    | Incident location                                                  |
+| PRECINCT             | Precinct where the incident occurred                               |
+| JURISDICTION_CODE    | Jurisdiction code of the location                                  |
+| LOC_CLASSFCTN_DESC   | Location classification                                            |
+| LOCATION_DESC        | Description of location                                            |
+| STATISTICAL_MURDER_FLAG | Indicates whether the shooting resulted in a victim’s death, counted as a murder |
+| PERP_AGE_GROUP       | Age group of the perpetrator                                       |
+| PERP_SEX             | Sex of the perpetrator                                             |
+| PERP_RACE            | Race of the perpetrator                                            |
+| VIC_AGE_GROUP        | Age group of the victim                                            |
+| VIC_SEX              | Sex of the victim                                                  |
+| VIC_RACE             | Race of the victim                                                 |
+| X_COORD_CD           | X-coordinate                                                       |
+| Y_COORD_CD           | Y-coordinate                                                       |
+| Latitude             | Latitude                                                           |
+| Longitude            | Longitude                                                          |
+| Lon_Lat              | Longitude and latitude coordinates for mapping                     |    
+
 ### Data Retrieval and Preprocessing
+
+The data used in this analysis were retrieved from the NYC Open Data portal. It includes information about shooting incidents, such as date, time, borough, victim race, and location description.
 
 ```{r get_gov_data, echo=FALSE}
 # Retrieving data from the NYC Open Data portal
@@ -68,7 +101,6 @@ nypd_data <- nypd_data %>%
 ### Data Analysis and Visualization
 
 #### Stacked Bar Chart: Borough vs. Victim Race {.center}
-
 
 ```{r plot_borough_victim_race, echo=TRUE}
 # Creating a stacked bar chart showing incidents by borough and victim race
@@ -134,6 +166,10 @@ ggplot(merged_data, aes(x = total_incidents, y = black_victims)) +
 ```
 
 The linear regression analysis investigates the relationship between the total number of incidents and the number of incidents involving Black victims per borough. The resulting regression model provides insights into this relationship.
+
+### Conclusion
+
+The analysis reveals that Black individuals are disproportionately affected by shooting incidents across all boroughs. The linear regression model suggests a positive association between the total number of incidents and incidents involving Black victims, highlighting potential disparities in victimization. However, it's important to acknowledge potential sources of bias, such as underreporting or data collection methods, which may influence the findings.
 
 ### Additional Question
 
